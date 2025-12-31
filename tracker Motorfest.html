@@ -1,0 +1,921 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Motorfest TRACKer - Ultimate</title>
+    <style>
+        /* === VARIABLES & THEME === */
+        :root { 
+            --accent: #ff0055; 
+            --accent-glow: rgba(255, 0, 85, 0.5);
+            --bg: #090909; 
+            --card: #141414; 
+            --text: #e0e0e0; 
+            --success: #00ff88; 
+            --glass: rgba(20, 20, 20, 0.90);
+        }
+        
+        body { 
+            font-family: 'Segoe UI', system-ui, sans-serif; 
+            background: var(--bg); 
+            color: var(--text); 
+            margin: 0; 
+            padding: 0; 
+            font-size: 14px; 
+            padding-bottom: 80px;
+        }
+
+        /* HEADER GLOBAL */
+        .main-header { padding: 25px 25px 15px 25px; background: radial-gradient(circle at top right, #1a0b10, transparent); }
+        .header-top { display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 15px; }
+        h1 { margin: 0; color: white; text-transform: uppercase; font-size: 1.8em; letter-spacing: 2px; text-shadow: 0 0 15px var(--accent-glow); }
+        
+        .progress-container { width: 100%; background: #222; height: 10px; border-radius: 5px; overflow: hidden; position: relative; }
+        .progress-bar { 
+            height: 100%; 
+            background: linear-gradient(90deg, var(--accent), #ff5500); 
+            width: 0%; 
+            transition: width 0.6s cubic-bezier(0.22, 1, 0.36, 1); 
+            box-shadow: 0 0 20px var(--accent-glow);
+        }
+
+        /* STICKY NAV */
+        .sticky-nav {
+            position: sticky; top: 0; z-index: 100;
+            background: var(--glass);
+            backdrop-filter: blur(15px); -webkit-backdrop-filter: blur(15px);
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+            padding: 15px 25px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+        }
+
+        .tabs { display: flex; gap: 10px; margin-bottom: 15px; overflow-x: auto; padding-bottom: 5px; scrollbar-width: none; }
+        .tab-btn {
+            background: rgba(255,255,255,0.05);
+            border: 1px solid rgba(255,255,255,0.1);
+            color: #aaa;
+            padding: 10px 20px;
+            cursor: pointer;
+            font-size: 0.85em; font-weight: 700;
+            text-transform: uppercase; letter-spacing: 1px;
+            transition: 0.3s; border-radius: 30px;
+            white-space: nowrap;
+        }
+        .tab-btn:hover { border-color: var(--accent); color: white; background: rgba(255, 0, 85, 0.1); }
+        .tab-btn.active { background: var(--accent); border-color: var(--accent); color: white; box-shadow: 0 0 15px var(--accent-glow); }
+
+        .controls { display: flex; gap: 15px; align-items: center; flex-wrap: wrap; }
+        input[type="text"] { 
+            flex: 1; min-width: 250px; padding: 12px 15px; 
+            background: rgba(0,0,0,0.5); border: 1px solid #444; 
+            color: white; border-radius: 6px; outline: none; transition: 0.3s;
+        }
+        input[type="text"]:focus { border-color: var(--accent); box-shadow: 0 0 10px rgba(255,0,85,0.2); }
+
+        .toggle-wrapper { display: flex; align-items: center; font-size: 0.9em; user-select: none; background: rgba(0,0,0,0.5); padding: 10px 15px; border-radius: 6px; border: 1px solid #333; }
+        .toggle-wrapper input { margin-right: 10px; accent-color: var(--accent); cursor: pointer; transform: scale(1.2); }
+        .toggle-wrapper label { cursor: pointer; color: #ccc; }
+
+        /* GRID CONTENT */
+        .grid-wrapper { display: grid; grid-template-columns: repeat(auto-fill, minmax(500px, 1fr)); gap: 25px; padding: 25px; }
+        
+        .category-block { 
+            background: var(--card); border: 1px solid #2a2a2a; 
+            border-radius: 12px; overflow: hidden; 
+            transition: transform 0.3s, box-shadow 0.3s;
+            display: flex; flex-direction: column;
+        }
+        .category-block:hover { box-shadow: 0 10px 30px rgba(0,0,0,0.4); border-color: #555; transform: translateY(-2px); }
+
+        .cat-header { 
+            background: linear-gradient(to right, #1e1e1e, #141414); padding: 15px 20px; cursor: pointer; user-select: none;
+            border-bottom: 1px solid #2a2a2a; position: relative;
+        }
+        .cat-title-row { display: flex; justify-content: space-between; align-items: center; font-weight: 800; color: white; margin-bottom: 8px; font-size: 1.1em; letter-spacing: 0.5px; }
+        .cat-arrow { transition: transform 0.3s; color: #666; font-size: 0.8em; }
+        
+        .mini-progress-track { height: 4px; background: #333; width: 100%; border-radius: 2px; overflow: hidden; }
+        .mini-progress-fill { height: 100%; background: var(--accent); width: 0%; transition: width 0.5s; }
+        
+        .cat-header.completed .cat-title-row { color: var(--success); }
+        .cat-header.completed .mini-progress-fill { background: var(--success); }
+        
+        .category-block.collapsed .cat-arrow { transform: rotate(-90deg); }
+        .category-block.collapsed .challenge-rows-container { display: none; }
+
+        /* ITEMS */
+        .challenge-row { 
+            display: flex; align-items: flex-start; padding: 12px 20px; 
+            border-bottom: 1px solid #222; transition: background 0.2s; 
+            position: relative;
+        }
+        .challenge-row:last-child { border-bottom: none; }
+        .challenge-row:hover { background: #1f1f1f; }
+        
+        @keyframes flashSuccess { 0% { background: rgba(0, 255, 136, 0.3); } 100% { background: transparent; } }
+        .challenge-row.just-checked { animation: flashSuccess 0.6s ease-out; }
+
+        input[type="checkbox"].ch-check { 
+            margin-right: 18px; margin-top: 5px; 
+            width: 20px; height: 20px; 
+            accent-color: var(--accent); cursor: pointer; 
+        }
+        input:checked + .ch-content .ch-title { text-decoration: line-through; color: #555; }
+        input:checked + .ch-content { opacity: 0.5; filter: grayscale(100%); }
+
+        .ch-content { flex: 1; display: flex; flex-direction: column; }
+        .ch-title { font-weight: 600; color: #eee; margin-bottom: 6px; font-size: 1.05em; }
+        .ch-meta { font-size: 0.85em; color: #888; line-height: 1.5; display: flex; flex-wrap: wrap; gap: 5px; align-items: center; }
+        
+        .badge { display: inline-flex; align-items: center; background: #222; padding: 2px 8px; border-radius: 4px; color: #bbb; font-size: 0.85em; border: 1px solid #333; }
+        .badge.veh { color: #4db8ff; border-color: rgba(77, 184, 255, 0.3); background: rgba(77, 184, 255, 0.05); }
+
+        /* FOOTER */
+        .footer-tools { 
+            padding: 20px; border-top: 1px solid #333; margin-top: 40px; 
+            text-align: center; background: #111; 
+            position: fixed; bottom: 0; width: 100%; box-sizing: border-box; z-index: 90;
+            backdrop-filter: blur(10px);
+        }
+        .btn-tool { 
+            background: #222; color: #aaa; border: 1px solid #444; 
+            padding: 8px 16px; margin: 0 5px; border-radius: 4px; cursor: pointer; font-size: 0.85em; 
+            transition: 0.2s;
+        }
+        .btn-tool:hover { background: #333; color: white; border-color: #666; }
+        .btn-danger { border-color: #500; color: #f55; background: rgba(80, 0, 0, 0.3); }
+        .btn-danger:hover { background: #d00; color: white; }
+
+        @media (max-width: 768px) {
+            .header-top { flex-direction: column; align-items: flex-start; gap: 10px; }
+            .grid-wrapper { grid-template-columns: 1fr; padding: 15px; }
+            .controls { flex-direction: column; align-items: stretch; }
+            .footer-tools { position: static; }
+        }
+    </style>
+</head>
+<body>
+
+<div class="main-header">
+    <div class="header-top">
+        <div>
+            <h1>🏁 Motorfest <span style="color:var(--accent)">Tracker</span></h1>
+            <small style="color:#666; letter-spacing: 1px;">ULTIMATE EDITION</small>
+        </div>
+        <div style="text-align:right">
+            <div id="countDisplay" style="font-size:1.8em; font-weight:800; color:white; font-family: monospace;">0 / 0</div>
+            <small style="color:#888; font-weight:bold;">PROGRESSION TOTALE</small>
+        </div>
+    </div>
+    <div class="progress-container"><div id="progressBar" class="progress-bar"></div></div>
+</div>
+
+<div class="sticky-nav">
+    <div class="tabs">
+        <button class="tab-btn active" onclick="switchTab('playlist')" id="btn-playlist">🏎️ Playlists</button>
+        <button class="tab-btn" onclick="switchTab('exploration')" id="btn-exploration">🌍 Exploration & Photo</button>
+        <button class="tab-btn" onclick="switchTab('defis')" id="btn-defis">🔧 Défis & Marques</button>
+    </div>
+
+    <div class="controls">
+        <input type="text" id="search" placeholder="🔍 Rechercher (ex: 'Ferrari', 'Nuit', 'Radar')...">
+        <div class="toggle-wrapper">
+            <input type="checkbox" id="hideCompleted" onchange="toggleCompletedFilter()">
+            <label for="hideCompleted">Masquer terminés</label>
+        </div>
+    </div>
+</div>
+
+<div id="container" class="grid-wrapper"></div>
+
+<div style="height: 60px;"></div>
+
+<div class="footer-tools">
+    <button class="btn-tool" onclick="exportData()">⬇️ Sauvegarder (.json)</button>
+    <button class="btn-tool" onclick="document.getElementById('fileInput').click()">⬆️ Restaurer</button>
+    <input type="file" id="fileInput" style="display:none" onchange="importData(this)">
+    <span style="margin: 0 10px; color:#333">|</span>
+    <button class="btn-tool btn-danger" onclick="resetAll()">⚠️ Reset Zero</button>
+</div>
+
+<script>
+// === DONNÉES COMPLÈTES (MASTER DATA FILE) ===
+const allPlaylistsData = {
+    "lamborghini": {
+        title: "🇮🇹 Automobili Lamborghini",
+        challenges: [
+            { id: "al_01", name: "A.L. Night Menace", type: "Condition", desc: "Rouler ou gagner de nuit" },
+            { id: "al_02", name: "A.L. Speedster", type: "Speed", desc: "Atteindre une vitesse élevée" },
+            { id: "al_03", name: "A.L. Speed Run", type: "Speed", desc: "Maintenir une vitesse sur la durée" },
+            { id: "al_04", name: "A.L. Mean and Sharp", type: "Skill", desc: "Slalom ou Précision" },
+            { id: "al_05", name: "A.L. Clean Fight", type: "Clean", desc: "Terminer sans collision (Clean Modifier)" },
+            { id: "al_06", name: "A.L. Clean Driving Specialist", type: "Clean", desc: "Maintenir une conduite propre longtemps" },
+            { id: "al_07", name: "A.L. Japanese Style", type: "Location", desc: "Conduire dans une zone japonaise" },
+            { id: "al_08", name: "A.L. Ominous Speed", type: "Weather", desc: "Vitesse sous la pluie/mauvais temps" },
+            { id: "al_09", name: "A.L. Virtuoso", type: "Skill", desc: "Enchaîner des skills" },
+            { id: "al_10", name: "A.L. Close Call", type: "Skill", desc: "Frôler le trafic" },
+            { id: "al_11", name: "A.L. Gold Digger", type: "Exploration", desc: "Trouver des trésors (Crates)" },
+            { id: "al_12", name: "A.L. Caretaker", type: "Clean", desc: "Finir avec 0% de dégâts" },
+            { id: "al_13", name: "A.L. Old But Gold", type: "Vintage", desc: "Conduire une Lambo Classique (Miura/Countach)" },
+            { id: "al_14", name: "A.L. Blast", type: "Nitro", desc: "Utiliser la Nitro (Burn)" },
+            { id: "al_15", name: "A.L. Runaway", type: "Distance", desc: "S'échapper ou parcourir une distance" },
+            { id: "al_16", name: "A.L. Professional", type: "Win", desc: "Gagner en difficulté élevée" },
+            { id: "al_17", name: "A.L. Gambler", type: "Risk", desc: "Gagner avec des affixes de risque ?" },
+            { id: "al_18", name: "A.L. Pro Skills", type: "Skill", desc: "Cumuler des points de skill" },
+            { id: "al_19", name: "A.L. Custom", type: "Custom", desc: "Modifier visuellement une Lamborghini" },
+            { id: "al_20", name: "A.L. Addict", type: "Grind", desc: "Rouler longtemps avec une Lamborghini" },
+            { id: "al_21", name: "A.L. Bull Uprising", type: "Race", desc: "Épreuve spécifique" },
+            { id: "al_22", name: "A.L. Top Driver", type: "Win", desc: "Finir premier" },
+            { id: "al_23", name: "A.L. Rivals", type: "PvP/PvE", desc: "Battre un rival ou un fantôme" }
+        ]
+    },
+    "motorsport": {
+        title: "🏎️ Motorsport (Alpha GP)",
+        challenges: [
+            { id: "agp_01", name: "Grand Race & Crew Challenges", type: "Multiplayer", desc: "Participer à une Grand Race ou Crew" },
+            { id: "agp_02", name: "Alpha Speedster", type: "Speed", desc: "Atteindre la V-Max en Alpha GP" },
+            { id: "agp_03", name: "Alpha Runaway", type: "Distance", desc: "Distance sans s'arrêter" },
+            { id: "agp_04", name: "Alpha Unchained", type: "Nitro", desc: "Vider la barre de nitro" },
+            { id: "agp_05", name: "Alpha Spirit", type: "Exploration", desc: "Rouler en mode libre" },
+            { id: "agp_06", name: "Alpha Strategy", type: "Technical", desc: "Gagner avec un arrêt au stand" },
+            { id: "agp_07", name: "Alpha Caretaker", type: "Clean", desc: "0% Dégâts sur une épreuve" },
+            { id: "agp_08", name: "Alpha Speed", type: "Speed", desc: "Maintenir une vitesse moyenne" },
+            { id: "agp_09", name: "Alpha Overtaking", type: "Skill", desc: "Doubler sans toucher" },
+            { id: "agp_10", name: "Alpha Custom", type: "Custom", desc: "Customiser une Alpha GP" },
+            { id: "agp_11", name: "Alpha Close Call", type: "Skill", desc: "Frôler des adversaires" },
+            { id: "agp_12", name: "Alpha Pace", type: "Time", desc: "Battre un temps au tour" },
+            { id: "agp_13", name: "Alpha Position", type: "Win", desc: "Rester 1er pendant X temps" },
+            { id: "agp_14", name: "Alpha Story", type: "Lore", desc: "Terminer un event narratif" },
+            { id: "agp_15", name: "Alpha Bully", type: "Aggro", desc: "Mettre hors piste un adversaire ?" },
+            { id: "agp_16", name: "Alpha Essenza", type: "Vehicle", desc: "Gagner avec la Lambo Essenza SCV12" },
+            { id: "agp_17", name: "Alpha Level", type: "Progression", desc: "Monter de niveau véhicule" },
+            { id: "agp_18", name: "Alpha Addict", type: "Grind", desc: "Rouler X km en Alpha GP" },
+            { id: "agp_19", name: "Alpha Endurance", type: "Endurance", desc: "Terminer une course longue" },
+            { id: "agp_20", name: "Alpha Champion", type: "Win", desc: "Gagner un championnat/Summit" },
+            { id: "agp_21", name: "Alpha By Night", type: "Condition", desc: "Rouler de nuit" },
+            { id: "agp_22", name: "Alpha Racing", type: "Race", desc: "Terminer des courses simples" }
+        ]
+    },
+    "bike_lovers": {
+        title: "🏍️ Bike Lovers",
+        challenges: [
+            { id: "bk_01", name: "Rider Sightseeing", type: "Exploration", desc: "Visiter des lieux à moto" },
+            { id: "bk_02", name: "Rider Spirit", type: "Exploration", desc: "Balade en mode libre" },
+            { id: "bk_03", name: "Rider Treasure Hunt", type: "Exploration", desc: "Trouver une caisse (Live Crate)" },
+            { id: "bk_04", name: "Rider Stunt", type: "Skill", desc: "Faire des figures" },
+            { id: "bk_05", name: "Rider Close Call", type: "Skill", desc: "Frôler le trafic" },
+            { id: "bk_06", name: "Rider Endurance", type: "Distance", desc: "Rouler longtemps sans s'arrêter" },
+            { id: "bk_07", name: "Rider Addiction", type: "Grind", desc: "Rouler 30 min en Harley Davidson (FreeDrive)" },
+            { id: "bk_08", name: "Rider Acrobatics", type: "Skill", desc: "Wheelie ou Stoppie" },
+            { id: "bk_09", name: "Rider Flights", type: "Jump", desc: "Sauts à moto" },
+            { id: "bk_10", name: "Rider Mastery", type: "Skill", desc: "Score de slalom ou précision" },
+            { id: "bk_11", name: "Rider Dirty Skills", type: "Offroad", desc: "Skills en Motocross/Dirt" },
+            { id: "bk_12", name: "Pro Rider", type: "Win", desc: "Gagner en difficulté Pro" },
+            { id: "bk_13", name: "Alpha Rider", type: "Win", desc: "Gagner avec une moto de course" },
+            { id: "bk_14", name: "Rider Cruise", type: "Distance", desc: "Conduite cool en groupe" },
+            { id: "bk_15", name: "Rider Speed", type: "Speed", desc: "Atteindre une vitesse max" },
+            { id: "bk_16", name: "Rider Tourism", type: "Exploration", desc: "Aller d'un point A à B" },
+            { id: "bk_17", name: "Rider Challenge", type: "Race", desc: "Terminer une épreuve spécifique" },
+            { id: "bk_18", name: "Rider Burn", type: "Nitro", desc: "Utiliser la nitro" },
+            { id: "bk_19", name: "Rider Stroll", type: "Exploration", desc: "Promenade lente" },
+            { id: "bk_20", name: "Rider Gust", type: "Skill", desc: "Aspiration derrière un véhicule" },
+            { id: "bk_21", name: "Rider Club", type: "Social", desc: "Rouler en Crew" },
+            { id: "bk_22", name: "Rider Blast", type: "Nitro", desc: "Accélération brutale" },
+            { id: "bk_23", name: "Rider Steez", type: "Style", desc: "Style vestimentaire ou moto custom" }
+        ]
+    },
+    "drift_experience": {
+        title: "💨 Drift Experience",
+        challenges: [
+            { id: "dr_01", name: "Burning Call", type: "Skill", desc: "Appel / Contre-appel" },
+            { id: "dr_02", name: "Burning Skill", type: "Skill", desc: "Score de drift général" },
+            { id: "dr_03", name: "Burning Turtle", type: "Slow", desc: "Drift lent ou contrôlé ?" },
+            { id: "dr_04", name: "Burning Expert", type: "Skill", desc: "Score élevé en une fois" },
+            { id: "dr_05", name: "Burning Escape", type: "Escape", desc: "Fuite en driftant" },
+            { id: "dr_06", name: "Burning Journey", type: "Distance", desc: "Voyage en voiture de drift" },
+            { id: "dr_07", name: "Burning Freedom", type: "FreeDrive", desc: "Drifter en monde ouvert" },
+            { id: "dr_08", name: "Burning Sand", type: "Terrain", desc: "Drifter sur le sable" },
+            { id: "dr_09", name: "Burning Roads", type: "Terrain", desc: "Drifter sur asphalte" },
+            { id: "dr_10", name: "Burning Spirit", type: "Exploration", desc: "Visiter en driftant" },
+            { id: "dr_11", name: "Burning Dragon", type: "Location", desc: "Zone asiatique / Dragon" },
+            { id: "dr_12", name: "Burning Style", type: "Custom", desc: "Customiser voiture drift" },
+            { id: "dr_13", name: "Burning Donut", type: "Technique", desc: "Faire des donuts" },
+            { id: "dr_14", name: "Burning Bird", type: "Jump", desc: "Sauter en voiture de drift" },
+            { id: "dr_15", name: "Burning Leader", type: "Win", desc: "Gagner une épreuve" },
+            { id: "dr_16", name: "Burning Desert", type: "Location", desc: "Drifter dans le désert" },
+            { id: "dr_17", name: "Burning Drift", type: "Skill", desc: "Cumul de points total" },
+            { id: "dr_18", name: "Burning Turbines", type: "Technique", desc: "Drift haute vitesse" },
+            { id: "dr_19", name: "Burning Spiral", type: "Technique", desc: "Drift en cercle/rond point" },
+            { id: "dr_20", name: "Burning Kaiju", type: "Vehicle", desc: "Drift en voiture japonaise" },
+            { id: "dr_21", name: "Burning Top Drift", type: "Skill", desc: "Battre un record" },
+            { id: "dr_22", name: "Burning Shadow", type: "Time", desc: "Drifter de nuit ou sous un tunnel" },
+            { id: "dr_23", name: "Burning Edge", type: "Technique", desc: "Drift au bord du vide" },
+            { id: "dr_24", name: "Burning Rubber", type: "Grind", desc: "Détruire des pneus / Longue session" }
+        ]
+    },
+    "electric_odyssey": {
+        title: "⚡ Electric Odyssey",
+        challenges: [
+            { id: "eo_01", name: "E-Spin", type: "Technique", desc: "Faire un tête à queue ou 360" },
+            { id: "eo_02", name: "E-lectric Mood", type: "Custom", desc: "Customisation électrique (Vanity)" },
+            { id: "eo_03", name: "E-Rampage", type: "Destruction", desc: "Casser des éléments du décor" },
+            { id: "eo_04", name: "E-Leader", type: "Win", desc: "Être en tête" },
+            { id: "eo_05", name: "Full E-Charge", type: "Nitro", desc: "Recharger le boost au max (freinage régénératif)" },
+            { id: "eo_06", name: "E-Pristine", type: "Clean", desc: "Ne rien toucher (Difficile)" },
+            { id: "eo_07", name: "E-Storm", type: "Weather", desc: "350 km/h sous un ORAGE (Très long à trouver)" },
+            { id: "eo_08", name: "E-Virtuose", type: "Skill", desc: "Score de skills" },
+            { id: "eo_09", name: "E-Snake", type: "Skill", desc: "Slalom parfait" },
+            { id: "eo_10", name: "Clean E-nergy", type: "Clean", desc: "Conduite propre" },
+            { id: "eo_11", name: "E-xtreme Velocity", type: "Speed", desc: "Vitesse max en électrique" },
+            { id: "eo_12", name: "E-Careful!", type: "Clean", desc: "Attention aux murs" },
+            { id: "eo_13", name: "E-Legend", type: "Win", desc: "Gagner en difficulté max" },
+            { id: "eo_14", name: "E-Adventurer", type: "Exploration", desc: "Sortir des sentiers battus" },
+            { id: "eo_15", name: "E-Caretaker", type: "Clean", desc: "0 dégâts" },
+            { id: "eo_16", name: "E-Eruption", type: "Location", desc: "Rouler près du Volcan" },
+            { id: "eo_17", name: "E-Gold Digger", type: "Exploration", desc: "Trésor en voiture électrique" },
+            { id: "eo_18", name: "Volkswagen E-xpress", type: "Vehicle", desc: "Utiliser la VW ID.R" },
+            { id: "eo_19", name: "E-mmaculate Victory", type: "Win", desc: "Gagner sans égratignure" },
+            { id: "eo_20", name: "E-Challenger", type: "PvP", desc: "Défi multijoueur" },
+            { id: "eo_21", name: "E-Top Driver", type: "Win", desc: "Meilleur pilote" },
+            { id: "eo_22", name: "E-Party", type: "Social", desc: "En crew" },
+            { id: "eo_23", name: "E-Skilled", type: "Skill", desc: "Réussir des défis skills" }
+        ]
+    },
+    "mustang_tribute": {
+        title: "🐴 Mustang Tribute",
+        challenges: [
+            { id: "mt_01", name: "American Run", type: "Distance", desc: "Rouler en Mustang" },
+            { id: "mt_02", name: "American Vacation", type: "Distance", desc: "Road trip (longue distance)" },
+            { id: "mt_03", name: "American Speed", type: "Speed", desc: "Vitesse en Muscle Car" },
+            { id: "mt_04", name: "American Runaway", type: "Escape", desc: "Fuite" },
+            { id: "mt_05", name: "American Close Call", type: "Skill", desc: "Frôlements (Clean modifier requis !)" },
+            { id: "mt_06", name: "American Boost", type: "Nitro", desc: "Utilisation nitro" },
+            { id: "mt_07", name: "American Monster", type: "Vehicle", desc: "Utiliser une version Monster Truck ?" },
+            { id: "mt_08", name: "American Spin", type: "Technique", desc: "Burnout ou 360" },
+            { id: "mt_09", name: "American Smackdown", type: "Destruction", desc: "Casser des objets" },
+            { id: "mt_10", name: "American Rubber", type: "Grind", desc: "Brûler la gomme" },
+            { id: "mt_11", name: "American Buffalo", type: "Terrain", desc: "Rouler dans la nature" },
+            { id: "mt_12", name: "American Flight", type: "Jump", desc: "Sauts en Mustang" },
+            { id: "mt_13", name: "American Off-Roader", type: "Terrain", desc: "Mustang Offroad requise" },
+            { id: "mt_14", name: "American Leader", type: "Win", desc: "Être premier" },
+            { id: "mt_15", name: "American Gust", type: "Skill", desc: "Aspiration" },
+            { id: "mt_16", name: "American Top Dog", type: "Win", desc: "Gagner" },
+            { id: "mt_17", name: "American Herd", type: "Social", desc: "Rouler en groupe de Mustang" },
+            { id: "mt_18", name: "American Rocket", type: "Speed", desc: "Accélération Dragster" },
+            { id: "mt_19", name: "Snake", type: "Vehicle", desc: "Utiliser la Shelby GT500 (Cobra)" },
+            { id: "mt_20", name: "Cruiser", type: "Exploration", desc: "Balade lente" },
+            { id: "mt_21", name: "Speedster", type: "Speed", desc: "Vitesse" },
+            { id: "mt_22", name: "American Cheetah", type: "Speed", desc: "Vitesse rapide" },
+            { id: "mt_23", name: "American Maestro", type: "Collection", desc: "Obtenir la signature audio V8" }
+        ]
+    },
+    "donut_media": {
+        title: "🍩 Donut Media",
+        challenges: [
+            { id: "dm_01", name: "Donut x Muscle Gang", type: "Vehicle", desc: "En Muscle Car" },
+            { id: "dm_02", name: "Donut x Raptor Pack", type: "Vehicle", desc: "En Ford Raptor" },
+            { id: "dm_03", name: "Donut x Hi Driver", type: "Social", desc: "Saluer ou Klaxonner ?" },
+            { id: "dm_04", name: "Donut x Cruise", type: "Distance", desc: "Balade" },
+            { id: "dm_05", name: "Donut x Bean Giver", type: "Nitro", desc: "Full Gaz (Beans)" },
+            { id: "dm_06", name: "Donut x Gig Lover", type: "Event", desc: "Participer aux events" },
+            { id: "dm_07", name: "Donut x Window Shopper", type: "Exploration", desc: "S'arrêter devant des magasins" },
+            { id: "dm_08", name: "Donut x Tribute", type: "Lore", desc: "Hommage" },
+            { id: "dm_09", name: "Donut x Notorious", type: "Reputation", desc: "Gagner de la réputation" },
+            { id: "dm_10", name: "Donut x Speedster", type: "Speed", desc: "Vitesse" },
+            { id: "dm_11", name: "Donut x Expert", type: "Skill", desc: "Skills difficiles" },
+            { id: "dm_12", name: "Donut x C-8 Explosion", type: "Vehicle", desc: "En Corvette C8" },
+            { id: "dm_13", name: "Donut x Tomorrowland", type: "Location", desc: "Zone futuriste ?" },
+            { id: "dm_14", name: "Donut x Troublemaker", type: "Destruction", desc: "Casser le décor" },
+            { id: "dm_15", name: "Donut x Chevy Rampage", type: "Vehicle", desc: "En Chevrolet" },
+            { id: "dm_16", name: "Donut x Slide Master", type: "Drift", desc: "Drifter" },
+            { id: "dm_17", name: "Donut x Steez", type: "Style", desc: "Style de conduite" },
+            { id: "dm_18", name: "Donut x Flying Dino", type: "Jump", desc: "Saut" },
+            { id: "dm_19", name: "Donut x Buff But Smooth", type: "Clean", desc: "Muscle Car mais conduite propre" },
+            { id: "dm_20", name: "Donut x Leading The Way", type: "Win", desc: "Rester premier" },
+            { id: "dm_21", name: "Donut x Hi Speed", type: "Speed", desc: "Haute vitesse" },
+            { id: "dm_22", name: "Donut x Panzer", type: "Vehicle", desc: "Véhicule lourd/blindé ?" },
+            { id: "dm_23", name: "Donut x King of Hawaii", type: "Win", desc: "Domination totale" },
+            { id: "dm_24", name: "Donut x Over The Top", type: "Stunt", desc: "Cascade folle" }
+        ]
+    },
+    "dream_cars": {
+        title: "✨ Dream Cars",
+        challenges: [
+            { id: "dc_01", name: "Super Racetrack", type: "Location", desc: "Sur circuit" },
+            { id: "dc_02", name: "Super Club", type: "Social", desc: "En groupe" },
+            { id: "dc_03", name: "Super Squad", type: "Social", desc: "En Crew" },
+            { id: "dc_04", name: "Super Driver", type: "Skill", desc: "Bien conduire" },
+            { id: "dc_05", name: "Super Massive", type: "Grind", desc: "Gros score ou distance" },
+            { id: "dc_06", name: "Super Touristy", type: "Exploration", desc: "Visiter des lieux" },
+            { id: "dc_07", name: "Supercedes", type: "Distance", desc: "75 Miles (120km) en Mercedes (Long !)" },
+            { id: "dc_08", name: "Super Day Off", type: "FreeDrive", desc: "Balade tranquille" },
+            { id: "dc_09", name: "Super Close Call", type: "Skill", desc: "Frôler le trafic" },
+            { id: "dc_10", name: "Super Virtuoso", type: "Skill", desc: "Enchaînement de skills" },
+            { id: "dc_11", name: "Super Runaway", type: "Distance", desc: "S'éloigner" },
+            { id: "dc_12", name: "Super Caretaker", type: "Clean", desc: "0 Dégâts" },
+            { id: "dc_13", name: "Super E-volution", type: "Win", desc: "Gagner l'épreuve (Audio buggé)" },
+            { id: "dc_14", name: "Supa Powa", type: "Speed", desc: "Puissance max" },
+            { id: "dc_15", name: "Super Boosts", type: "Nitro", desc: "Utiliser la nitro" },
+            { id: "dc_16", name: "Super Selfish", type: "Solo", desc: "Gagner seul" },
+            { id: "dc_17", name: "Super Sprinter", type: "Speed", desc: "Sprint court" },
+            { id: "dc_18", name: "Super Control", type: "Technique", desc: "Maîtrise du véhicule" },
+            { id: "dc_19", name: "Super Ride", type: "Distance", desc: "Trajet" },
+            { id: "dc_20", name: "Super Bull", type: "Vehicle", desc: "En Lamborghini (Taureau)" },
+            { id: "dc_21", name: "Super Speed", type: "Speed", desc: "Vitesse" },
+            { id: "dc_22", name: "Super Voiture", type: "Vehicle", desc: "Supercar spécifique" },
+            { id: "dc_23", name: "Super Velocity", type: "Speed", desc: "Vitesse extrême" },
+{ id: "dc_24", name: "Super Snake", type: "Vehicle", desc: "En Shelby/Mustang" }
+        ]
+    },
+    "japan": {
+        title: "🇯🇵 PLAYLIST: MADE IN JAPAN",
+        challenges: [
+            { id: "mij_01", name: "Nippon Style", type: "Playlist", desc: "Finir la Playlist Made in Japan" },
+            { id: "mij_02", name: "The Drifting Sun", type: "Drift", desc: "Drift 500m continu (Nissan 370Z Nismo)" },
+            { id: "mij_03", name: "Touge Master", type: "Clean", desc: "Gagner sans toucher les murs (Mazda RX-7)" },
+            { id: "mij_04", name: "Midnight Run", type: "Distance", desc: "Rouler 10km de nuit (Honda NSX 1992)" },
+            { id: "mij_05", name: "Supra Supremacy", type: "Speed", desc: "Atteindre 350 km/h (Toyota Supra A80)" },
+            { id: "mij_06", name: "Civic Duty", type: "Skill", desc: "Slalom parfait x10 (Honda Civic Type R)" },
+            { id: "mij_07", name: "Lancer Evolution", type: "Dirt", desc: "Gagner sur terre (Mitsubishi Lancer Evo X)" },
+            { id: "mij_08", name: "Skyline Legacy", type: "Photo", desc: "Photo devant le Dragon (Nissan Skyline GT-R R34)" },
+            { id: "mij_09", name: "Street King", type: "Duel", desc: "Battre le Rival (Toyota Supra A80)" },
+            { id: "mij_10", name: "Cherry Blossom", type: "Photo", desc: "Photo sous les cerisiers (Japonaise)" },
+            { id: "mij_11", name: "Drift King", type: "Drift", desc: "Score 100k pts Drift (Mazda RX-8)" },
+            { id: "mij_12", name: "Urban Legend", type: "Skill", desc: "Frôler 50 voitures (Nissan GT-R R35)" }
+        ]
+    },
+    "muscle": {
+        title: "🇺🇸 PLAYLIST: AMERICAN MUSCLE",
+        challenges: [
+            { id: "am_01", name: "Muscle Tour", type: "Playlist", desc: "Finir la Playlist Muscle" },
+            { id: "am_02", name: "V8 Power", type: "Burn", desc: "Burnout de 10s (Ford Mustang GT)" },
+            { id: "am_03", name: "Quarter Mile", type: "Drag", desc: "Gagner en <12s (Chevrolet Camaro SS)" },
+            { id: "am_04", name: "Shelby Spirit", type: "Speed", desc: "Vitesse > 300km/h (Shelby GT500)" },
+            { id: "am_05", name: "Dodge This", type: "Jump", desc: "Sauter 200m au Volcan (Dodge Challenger Hellcat)" },
+            { id: "am_06", name: "Historic Route", type: "Trip", desc: "Rouler 20km Côte Ouest (Corvette C1)" },
+            { id: "am_07", name: "Heavy Metal", type: "Destruction", desc: "Détruire 50 objets (Ford Mustang Street)" },
+            { id: "am_08", name: "Donut Master", type: "Stunt", desc: "Faire 5 donuts (Pontiac GTO)" },
+            { id: "am_09", name: "The Judge", type: "Duel", desc: "Gagner le duel Final Muscle" },
+            { id: "am_10", name: "Topless", type: "Cruise", desc: "Conduire cabriolet ouvert 5km (Corvette C8)" }
+        ]
+    },
+    "porsche": {
+        title: "🇩🇪 PLAYLIST: 911 LEGACY",
+        challenges: [
+            { id: "por_01", name: "911 Origin", type: "Classic", desc: "Gagner avec la 901 (Porsche 911 1964)" },
+            { id: "por_02", name: "Turbo Era", type: "Speed", desc: "Maintenir 250km/h pendant 20s (Porsche 930 Turbo)" },
+            { id: "por_03", name: "GT3 Master", type: "Clean", desc: "Tour propre / 0 choc (Porsche 911 GT3 RS)" },
+            { id: "por_04", name: "Rally Spec", type: "Dirt", desc: "Gagner sur terre (Porsche 959 Raid)" },
+            { id: "por_05", name: "Modern Icon", type: "Speed", desc: "Vitesse > 340km/h (Porsche 992)" },
+            { id: "por_06", name: "Flat 6", type: "Distance", desc: "Rouler 30km (Toute Porsche 911)" },
+            { id: "por_07", name: "Precision", type: "Skill", desc: "Slalom sans toucher (Porsche Cayman GT4)" }
+        ]
+    },
+    "expl_hono": {
+        title: "🌋 EXPLORATION: HONOLULU",
+        challenges: [
+            { id: "exh_01", name: "Radar Waikiki", type: "Radar", desc: "Vitesse cible atteinte (Waikiki)" },
+            { id: "exh_02", name: "Slalom Canal", type: "Slalom", desc: "Score cible (Canal)" },
+            { id: "exh_03", name: "Fuite Centre", type: "Fuite", desc: "Distance cible (Centre)" },
+            { id: "exh_04", name: "Trésor Urbain", type: "Caisse", desc: "Trouver 5 boites (Rues)" },
+            { id: "exh_05", name: "Photo: Sky Tower", type: "Photo", desc: "Cadrer la tour (Aérien)" },
+            { id: "exh_06", name: "Photo: Statue", type: "Photo", desc: "Cadrer King Kamehameha (Palais)" },
+            { id: "exh_07", name: "Donut 1-5", type: "Collect", desc: "Trouver 5 premiers donuts (Toits/Ruelles)" },
+            { id: "exh_08", name: "Donut 6-10", type: "Collect", desc: "Trouver 5 derniers donuts" }
+        ]
+    },
+    "expl_volc": {
+        title: "⛰️ EXPLORATION: VOLCAN",
+        challenges: [
+            { id: "exv_01", name: "Saut Cratère", type: "Saut", desc: "Distance > 150m (Sommet)" },
+            { id: "exv_02", name: "Slalom Lave", type: "Slalom", desc: "Score cible (Pentes)" },
+            { id: "exv_03", name: "Montée Impossible", type: "Climb", desc: "Atteindre sommet (Flanc Nord)" },
+            { id: "exv_04", name: "Radar Descente", type: "Radar", desc: "Vitesse cible (Route sinueuse)" },
+            { id: "exv_05", name: "Figurine 1-5", type: "Collect", desc: "Trouver 5 Tikis (Chemins)" },
+            { id: "exv_06", name: "Figurine 6-10", type: "Collect", desc: "Trouver 5 derniers Tikis" }
+        ]
+    },
+    "expl_air": {
+        title: "✈️ EXPLORATION: CIEL & MER",
+        challenges: [
+            { id: "exa_01", name: "Défi Bouée 1", type: "Slalom", desc: "Slalom nautique (Baie Sud)" },
+            { id: "exa_02", name: "Défi Bouée 2", type: "Speed", desc: "Vitesse nautique (Port)" },
+            { id: "exa_03", name: "Défi Aérien 1", type: "Skill", desc: "Passer dans anneaux (Ciel ville)" },
+            { id: "exa_04", name: "Défi Aérien 2", type: "Low", desc: "Vol rase-motte (Ciel forêt)" },
+            { id: "exa_05", name: "Photo: Sous le pont", type: "Photo", desc: "Bateau sous pont (Rivière)" },
+            { id: "exa_06", name: "Photo: Sommet", type: "Photo", desc: "Avion au dessus nuages (Altitude)" }
+        ]
+    },
+    "photo_ops": {
+        title: "📸 PHOTO OPS (SPÉCIFIQUES)",
+        challenges: [
+            { id: "pho_01", name: "LBWK Sunset", type: "LBWK", desc: "BMW M4 LBWK + Coucher de soleil (Plage)" },
+            { id: "pho_02", name: "Shark Attack", type: "Statue", desc: "Voiture devant statue Requin (Haleiwa)" },
+            { id: "pho_03", name: "Rainbow Falls", type: "Nature", desc: "Voiture devant double cascade (Jungle)" },
+            { id: "pho_04", name: "Plane Wreck", type: "Wreck", desc: "Voiture devant l'épave avion (Montagne)" },
+            { id: "pho_05", name: "Temple Run", type: "JDM", desc: "Voiture devant temple japonais (Byodo-In)" },
+            { id: "pho_06", name: "Coffee Break", type: "Chill", desc: "Devant le magasin Kona Coffee (Campagne)" },
+            { id: "pho_07", name: "Surf's Up", type: "Fun", desc: "Devant les planches de surf (North Shore)" },
+            { id: "pho_08", name: "Observatory", type: "Night", desc: "De nuit devant les télescopes (Mauna Kea)" },
+            { id: "pho_09", name: "Coral Reef", type: "Boat", desc: "Bateau sur eau claire (Sandbar)" },
+            { id: "pho_10", name: "Container City", type: "Urban", desc: "Sur les conteneurs du port" }
+        ]
+    },
+    "liberty": {
+        title: "🔰 PLAYLIST: LIBERTY WALK",
+        challenges: [
+            { id: "lb_01", name: "LBWK Spirit", type: "Playlist", desc: "Finir la Playlist Liberty Walk" },
+            { id: "lb_02", name: "Widebody Cruise", type: "Trip", desc: "Rouler 20km (BMW M4 Liberty Walk)" },
+            { id: "lb_03", name: "Sunset Vibes", type: "Photo", desc: "Photo au coucher du soleil (Toute LBWK)" },
+            { id: "lb_04", name: "Clean Racing", type: "Clean", desc: "Gagner sans collision (Ferrari 458 LBWK)" },
+            { id: "lb_05", name: "Kato's Favorite", type: "Win", desc: "Gagner avec la Nissan GT-R LBWK" },
+            { id: "lb_06", name: "Japanese Custom", type: "Drift", desc: "Drift > 20000 pts (Toyota Supra LBWK)" }
+        ]
+    },
+    "hoonigan": {
+        title: "💨 PLAYLIST: HOONIGAN",
+        challenges: [
+            { id: "hoo_01", name: "Gymkhana Master", type: "Playlist", desc: "Finir la Playlist Hoonigan" },
+            { id: "hoo_02", name: "Tire Slayer", type: "Drift", desc: "Score Drift > 150k (Hoonicorn Mustang)" },
+            { id: "hoo_03", name: "Donut Box", type: "Stunt", desc: "Faire 3 donuts dans la zone (Mitsubishi Evo)" },
+            { id: "hoo_04", name: "Precision Drive", type: "Destruction", desc: "Casser 50 blocs de mousse (Ford Focus RS RX)" },
+            { id: "hoo_05", name: "Scumbag", type: "Photo", desc: "Photo en plein saut (Chevrolet Napalm Nova)" }
+        ]
+    },
+    "ocean": {
+        title: "🌊 PLAYLIST: OCEAN 'N SKY",
+        challenges: [
+            { id: "oc_01", name: "Explorer", type: "Playlist", desc: "Finir la Playlist Ocean 'n Sky" },
+            { id: "oc_02", name: "Barrel Roll", type: "Stunt", desc: "Faire 5 tonneaux (P-51 Mustang)" },
+            { id: "oc_03", name: "Wave Rider", type: "Jump", desc: "Sauter sur 10 vagues (Powerboat)" },
+            { id: "oc_04", name: "Low Flight", type: "Skill", desc: "Voler rase-motte 1km (Avion de voltige)" },
+            { id: "oc_05", name: "Sunset Fly", type: "Photo", desc: "Photo avion + soleil (Spitfire)" },
+            { id: "oc_06", name: "Speed Boat", type: "Speed", desc: "Atteindre vitesse max (Lamborghini Yacht)" }
+        ]
+    },
+    "grind": {
+        title: "🔧 DÉFIS DE MARQUES (GRIND)",
+        challenges: [
+            { id: "gr_01", name: "Abarth", type: "Abarth", desc: "Rouler 30km" },
+            { id: "gr_02", name: "Alfa Romeo", type: "Alfa", desc: "Rouler 30km" },
+            { id: "gr_03", name: "Aston Martin", type: "Aston", desc: "Rouler 40km" },
+            { id: "gr_04", name: "Audi", type: "Audi", desc: "Rouler 40km" },
+            { id: "gr_05", name: "Bentley", type: "Bentley", desc: "Rouler 30km" },
+            { id: "gr_06", name: "BMW", type: "BMW", desc: "Rouler 50km" },
+            { id: "gr_07", name: "Bugatti", type: "Bugatti", desc: "Rouler 50km" },
+            { id: "gr_08", name: "Cadillac", type: "Cadillac", desc: "Rouler 30km" },
+            { id: "gr_09", name: "Chevrolet", type: "Chevy", desc: "Rouler 50km" },
+            { id: "gr_10", name: "Dodge", type: "Dodge", desc: "Rouler 50km" },
+            { id: "gr_11", name: "Ferrari", type: "Ferrari", desc: "Rouler 50km" },
+            { id: "gr_12", name: "Ford", type: "Ford", desc: "Rouler 60km" },
+            { id: "gr_13", name: "Honda", type: "Honda", desc: "Rouler 40km" },
+            { id: "gr_14", name: "Hummer", type: "Hummer", desc: "Rouler 20km" },
+            { id: "gr_15", name: "Jaguar", type: "Jaguar", desc: "Rouler 30km" },
+            { id: "gr_16", name: "Jeep", type: "Jeep", desc: "Rouler 40km" },
+            { id: "gr_17", name: "Koenigsegg", type: "Koenigsegg", desc: "Rouler 30km" },
+            { id: "gr_18", name: "KTM", type: "KTM", desc: "Rouler 20km" },
+            { id: "gr_19", name: "Lamborghini", type: "Lambo", desc: "Rouler 50km" },
+            { id: "gr_20", name: "Lotus", type: "Lotus", desc: "Rouler 30km" },
+            { id: "gr_21", name: "Maserati", type: "Maserati", desc: "Rouler 30km" },
+            { id: "gr_22", name: "Mazda", type: "Mazda", desc: "Rouler 40km" },
+            { id: "gr_23", name: "McLaren", type: "McLaren", desc: "Rouler 40km" },
+            { id: "gr_24", name: "Mercedes-Benz", type: "Mercedes", desc: "Rouler 50km" },
+            { id: "gr_25", name: "Mini", type: "Mini", desc: "Rouler 20km" },
+            { id: "gr_26", name: "Mitsubishi", type: "Mitsu", desc: "Rouler 40km" },
+            { id: "gr_27", name: "Nissan", type: "Nissan", desc: "Rouler 50km" },
+            { id: "gr_28", name: "Pagani", type: "Pagani", desc: "Rouler 30km" },
+            { id: "gr_29", name: "Porsche", type: "Porsche", desc: "Rouler 50km" },
+            { id: "gr_30", name: "Renault", type: "Renault", desc: "Rouler 30km" },
+            { id: "gr_31", name: "Shelby", type: "Shelby", desc: "Rouler 30km" },
+            { id: "gr_32", name: "Toyota", type: "Toyota", desc: "Rouler 50km" },
+            { id: "gr_33", name: "Volkswagen", type: "VW", desc: "Rouler 30km" }
+        ]
+    }
+};
+
+// === LOGIQUE APPLICATIVE ===
+const container = document.getElementById('container');
+let totalChallenges = 0;
+const STORAGE_KEY = 'motorfest_ultimate_v2';
+let currentTab = localStorage.getItem('motorfest_ult_tab') || 'playlist';
+
+function init() {
+    let html = '';
+    
+    // UI Onglets
+    document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+    const activeBtn = document.getElementById(`btn-${currentTab}`);
+    if(activeBtn) activeBtn.classList.add('active');
+
+    for (const [key, categoryData] of Object.entries(allPlaylistsData)) {
+        const categoryTitle = categoryData.title; 
+        const items = categoryData.challenges;
+        totalChallenges += items.length;
+        
+        // Nettoyage de l'ID pour le DOM
+        const catId = key.replace(/[^a-zA-Z0-9]/g,''); 
+        
+        // TRI DES ONGLETS INTELLIGENT
+        let tabType = 'defis';
+        const upperTitle = categoryTitle.toUpperCase();
+        
+        if (upperTitle.includes("PLAYLIST") || upperTitle.includes("LAMBORGHINI") || upperTitle.includes("MOTORSPORT") || upperTitle.includes("BIKE") || upperTitle.includes("DRIFT") || upperTitle.includes("MUSTANG") || upperTitle.includes("DONUT") || upperTitle.includes("DREAM")) {
+            tabType = 'playlist';
+        } else if (upperTitle.includes("EXPLORATION") || upperTitle.includes("PHOTO")) {
+            tabType = 'exploration';
+        }
+        // 1. CALCUL DES COMBOS
+        const combos = generateSmartCombos(key, items);
+        let comboHtml = '';
+        
+        if (combos.length > 0) {
+            comboHtml = `<div class="combo-section" style="margin: 0 20px 15px 20px; display:grid; grid-template-columns: 1fr 1fr; gap: 10px;">`;
+            combos.forEach(c => {
+                comboHtml += `
+                <div style="background: rgba(0, 255, 136, 0.1); border: 1px solid #00ff88; border-radius: 8px; padding: 10px;">
+                    <strong style="color: #00ff88; display:block; margin-bottom:5px;">${c.title}</strong>
+                    <div style="font-size: 0.85em; color: #ccc; margin-bottom: 8px;">${c.desc}</div>
+                    <ul style="margin:0; padding-left: 20px; font-size: 0.8em; color: #eee;">
+                        ${c.steps.map(s => `<li>${s}</li>`).join('')}
+                    </ul>
+                </div>`;
+            });
+            comboHtml += `</div>`;
+        }
+        let rows = items.map((item) => {
+            const searchTerms = `${item.name} ${item.type} ${item.desc}`.toLowerCase();
+            return `
+            <div class="challenge-row" data-search="${searchTerms}">
+                <input type="checkbox" id="${item.id}" class="ch-check" onchange="handleCheck(this)">
+                <div class="ch-content">
+                    <span class="ch-title">${item.name}</span>
+                    <div class="ch-meta">
+                        <span class="badge veh">${item.type}</span>
+                        <span style="flex:100%; margin-top:4px; color:#999">👉 ${item.desc}</span>
+                    </div>
+                </div>
+            </div>`;
+        }).join('');
+
+        html += `
+        <div class="category-block" id="cat_${catId}" data-tab="${tabType}">
+            <div class="cat-header" onclick="toggleCategory('${catId}')">
+                <div class="cat-title-row">
+                    <span>${categoryTitle}</span>
+                    <span class="cat-arrow">▼</span>
+                </div>
+                <div class="mini-progress-track">
+                    <div class="mini-progress-fill" id="prog_${catId}"></div>
+                </div>
+            </div>
+            <div class="challenge-rows-container">
+<div class="challenge-rows-container">
+            ${comboHtml}  ${rows}
+        </div>
+                ${rows}
+            </div>
+        </div>`;
+    }
+    
+    container.innerHTML = html;
+    loadState();
+    updateStats();
+    updateView();
+}
+
+function switchTab(tabName) {
+    currentTab = tabName;
+    localStorage.setItem('motorfest_ult_tab', tabName);
+    document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+    document.getElementById(`btn-${tabName}`).classList.add('active');
+    updateView();
+}
+
+function updateView() {
+    const term = document.getElementById('search').value.toLowerCase();
+    const hideCompleted = document.getElementById('hideCompleted').checked;
+    
+    document.querySelectorAll('.category-block').forEach(block => {
+        // 1. Filtre Onglet
+        if (block.getAttribute('data-tab') !== currentTab) {
+            block.style.display = 'none';
+            return;
+        }
+
+        // 2. Filtre Recherche & Statut
+        let visibleRowsCount = 0;
+        block.querySelectorAll('.challenge-row').forEach(row => {
+            const text = row.getAttribute('data-search');
+            const isChecked = row.querySelector('input').checked;
+            const matchesSearch = term === '' || text.includes(term);
+            const shouldHide = hideCompleted && isChecked;
+            
+            if (matchesSearch && !shouldHide) {
+                row.style.display = 'flex';
+                visibleRowsCount++;
+            } else {
+                row.style.display = 'none';
+            }
+        });
+        
+        // Afficher le bloc seulement s'il contient des lignes visibles
+        block.style.display = visibleRowsCount > 0 ? 'flex' : 'none';
+    });
+}
+
+function handleCheck(checkbox) {
+    if(checkbox.checked) {
+        const row = checkbox.closest('.challenge-row');
+        row.classList.add('just-checked');
+        setTimeout(() => row.classList.remove('just-checked'), 600);
+    }
+    saveState();
+    updateStats();
+    if(document.getElementById('hideCompleted').checked) {
+        setTimeout(updateView, 300);
+    }
+}
+
+function toggleCategory(id) {
+    document.getElementById(`cat_${id}`).classList.toggle('collapsed');
+}
+
+function updateStats() {
+    const checkedCount = document.querySelectorAll('input.ch-check:checked').length;
+    
+    document.getElementById('countDisplay').innerText = `${checkedCount} / ${totalChallenges}`;
+    document.getElementById('progressBar').style.width = `${(checkedCount / totalChallenges) * 100}%`;
+
+    document.querySelectorAll('.category-block').forEach(block => {
+        const total = block.querySelectorAll('input.ch-check').length;
+        const done = block.querySelectorAll('input.ch-check:checked').length;
+        const percent = total === 0 ? 0 : (done / total) * 100;
+        
+        const catId = block.id.replace('cat_', '');
+        const miniBar = document.getElementById(`prog_${catId}`);
+        if(miniBar) miniBar.style.width = `${percent}%`;
+
+        const header = block.querySelector('.cat-header');
+        if (total > 0 && total === done) header.classList.add('completed');
+        else header.classList.remove('completed');
+    });
+}
+
+function saveState() {
+    const checked = [];
+    document.querySelectorAll('input.ch-check:checked').forEach(cb => checked.push(cb.id));
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(checked));
+}
+
+function loadState() {
+    const saved = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]');
+    saved.forEach(id => {
+        const el = document.getElementById(id);
+        if(el) el.checked = true;
+    });
+}
+
+function exportData() {
+    const data = localStorage.getItem(STORAGE_KEY) || '[]';
+    const blob = new Blob([data], {type: 'application/json'});
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `motorfest_ultimate_${new Date().toISOString().slice(0,10)}.json`;
+    a.click();
+}
+
+function importData(input) {
+    const file = input.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = function(e) {
+        try {
+            const data = JSON.parse(e.target.result);
+            if(Array.isArray(data)) {
+                localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+                location.reload();
+            } else { alert("Fichier invalide"); }
+        } catch(err) { alert("Erreur fichier"); }
+    };
+    reader.readAsText(file);
+}
+
+function resetAll() {
+    if(confirm("💥 ATTENTION : Effacement complet de la progression. Continuer ?")) {
+        localStorage.removeItem(STORAGE_KEY);
+        location.reload();
+    }
+}
+
+function toggleCompletedFilter() { updateView(); }
+document.getElementById('search').addEventListener('input', updateView);
+
+// === MOTEUR DE STRATÉGIE (COMBOS) ===
+function generateSmartCombos(playlistKey, allItems) {
+    // On ne garde que les défis NON COCHÉS (id non présent dans le localStorage)
+    // Note: Dans ton code actuel, tu devras passer la liste des items. 
+    // Ici on simule une vérification "est-ce que c'est actif ?".
+    
+    const saved = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]');
+    const activeItems = allItems.filter(item => !saved.includes(item.id));
+    const activeIds = activeItems.map(i => i.id);
+
+    let combos = [];
+
+    // --- LOGIQUE PAR PLAYLIST ---
+    switch (playlistKey) {
+
+        case "lamborghini":
+            // Combo 1 : Le "Night Rider" (Météo + Nuit)
+            let lamboNight = [];
+            if (activeIds.includes("al_01")) lamboNight.push("Régler l'heure sur Minuit");
+            if (activeIds.includes("al_08")) lamboNight.push("Régler la météo sur Pluie/Orage");
+            if (activeIds.includes("al_15")) lamboNight.push("Profitez-en pour faire la distance (Runaway)");
+            if (lamboNight.length >= 2) {
+                combos.push({ title: "🌑 The Dark Knight", desc: "Optimisez les conditions météo en une fois.", steps: lamboNight });
+            }
+
+            // Combo 2 : Clean & Fast
+            let lamboClean = [];
+            if (activeIds.includes("al_05")) lamboClean.push("Conduite propre (0 choc)");
+            if (activeIds.includes("al_12")) lamboClean.push("Caretaker (0% dégâts)");
+            if (activeIds.includes("al_06")) lamboClean.push("Maintenir la conduite propre");
+            if (lamboClean.length >= 2) {
+                combos.push({ title: "💎 Chirurgical", desc: "Concentration maximale sur une seule course.", steps: lamboClean });
+            }
+            break;
+
+        case "motorsport":
+            // Ton combo existant (adapté)
+            let gpSteps = [];
+            if (activeIds.includes("agp_01")) gpSteps.push("Lancez une épreuve longue (Endurance)");
+            if (activeIds.includes("agp_02")) gpSteps.push("Arrêt au Stand obligatoire");
+            if (activeIds.includes("agp_03")) gpSteps.push("Conduite 0% dégâts");
+            if (activeIds.includes("agp_06")) gpSteps.push("Stratégie d'arrêt");
+            if (gpSteps.length >= 2) {
+                combos.push({ title: "🏎️ Le Grand Chelem", desc: "Tout valider en une seule course d'endurance.", steps: gpSteps });
+            }
+            break;
+
+        case "bike_lovers":
+            // Combo Stunt
+            let bikeStunt = [];
+            if (activeIds.includes("bk_04")) bikeStunt.push("Faire des figures (Stunt)");
+            if (activeIds.includes("bk_08")) bikeStunt.push("Acrobaties (Wheelie/Stoppie)");
+            if (activeIds.includes("bk_09")) bikeStunt.push("Sauts (Flights)");
+            if (bikeStunt.length >= 2) {
+                combos.push({ title: "🎪 Le Cirque", desc: "Allez dans une zone de stunt ou au Monster Park.", steps: bikeStunt });
+            }
+            
+            // Combo Harley
+            let harley = [];
+            if (activeIds.includes("bk_07")) harley.push("Prendre une Harley Davidson");
+            if (activeIds.includes("bk_01")) harley.push("Faire du tourisme (Sightseeing)");
+            if (activeIds.includes("bk_14")) harley.push("Balade cool (Cruise)");
+            if (harley.length >= 2) {
+                combos.push({ title: "🦅 Easy Rider", desc: "Une longue balade tranquille en Harley.", steps: harley });
+            }
+            break;
+
+        case "drift_experience":
+            // Combo Technique
+            let driftTech = [];
+            if (activeIds.includes("dr_01")) driftTech.push("Appel / Contre-appel");
+            if (activeIds.includes("dr_13")) driftTech.push("Faire des Donuts");
+            if (activeIds.includes("dr_19")) driftTech.push("Spirale (Rond-point)");
+            if (driftTech.length >= 2) {
+                combos.push({ title: "🌀 Gymkhana King", desc: "Trouvez un grand parking ou un rond-point.", steps: driftTech });
+            }
+            break;
+
+        case "electric_odyssey":
+            // Combo Tempête
+            let elecStorm = [];
+            if (activeIds.includes("eo_07")) elecStorm.push("Attendre l'Orage (Storm)");
+            if (activeIds.includes("eo_11")) elecStorm.push("Vitesse Max (Velocity)");
+            if (activeIds.includes("eo_05")) elecStorm.push("Vider/Charger le boost");
+            if (elecStorm.length >= 2) {
+                combos.push({ title: "⚡ Zeus Mode", desc: "Le défi 'E-Storm' est le plus dur, combinez-le avec la vitesse.", steps: elecStorm });
+            }
+            break;
+            
+        case "mustang_tribute":
+            // Combo Offroad
+            let musOff = [];
+            if (activeIds.includes("mt_13")) musOff.push("Prendre une Mustang Rally/Raid");
+            if (activeIds.includes("mt_11")) musOff.push("Rouler dans la nature (Buffalo)");
+            if (activeIds.includes("mt_12")) musOff.push("Faire des sauts (Flight)");
+            if (musOff.length >= 2) {
+                combos.push({ title: "🤠 Wild West", desc: "Sortez du bitume avec une Mustang adaptée.", steps: musOff });
+            }
+            break;
+    }
+
+    return combos;
+}
+init();
+</script>
+</body>
+</html>
